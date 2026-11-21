@@ -1,8 +1,9 @@
 // An ask of several questions, one line at a time: a quick reply or the box's Enter answers the line
-// it is on, and the step moves to the first open line. Answers are held on this device (the comment
-// box's draft store, so a reload keeps them) and post as one comment when the last line is answered,
-// so the agent wakes once. Any comment sent sooner (an answer with files, a comment of its own) posts
-// the held answers with it, so none is left only on this device.
+// it is on, and the step moves to the first open line. Quick replies are held on this device (the
+// comment box's draft store, so a reload keeps them) and post as one comment when the last line is
+// answered, so the agent wakes once, or when the owner sends them sooner. Words sent from the box post
+// at once, as any send does, and any other comment sent sooner posts the held answers with it, so none
+// is left only on this device.
 import { useCallback, useMemo, useState } from 'react'
 import { useLatestHandler } from '@/lib/use-latest-handler'
 import { botRefKey } from '@/lib/bot-hosts'
@@ -56,7 +57,12 @@ export type BotItemQuestionSteps = {
   /** The lines to step through: those no comment answered yet, or only by order while held here. */
   lines: readonly number[]
   go: (index: number) => void
-  answer: (index: number, words: string, paths?: readonly string[]) => void
+  /** A quick reply: held until the last line is answered. */
+  answer: (index: number, words: string) => void
+  /** How many open lines hold an answer here, not sent yet. */
+  heldCount: number
+  /** Send now: the held answers post as one comment; the other lines stay open. */
+  sendHeld: () => void
 }
 
 export type BotItemQuickReplyActions = {
@@ -118,22 +124,24 @@ export function useBotItemQuestionSteps(
     setSent({ askId, text, answers })
     send(text, paths, askId)
   }
-  const answer = useLatestHandler((index: number, words: string, paths: readonly string[] = []) => {
+  // `fromBoxPaths`: the box's send, words and any files. It posts with the answers so far instead of
+  // waiting on this device for the other lines: Enter in the box is a send, as everywhere else.
+  const settle = (index: number, words: string, fromBoxPaths: readonly string[] | null): void => {
     const next = kept.map((held_, at) => (at === index ? words : held_))
     setChosen(null)
-    // Files are not held on this device: an answer with them posts the answers so far at once.
-    if (paths.length > 0 || lines.every((at) => next[at])) {
-      post(next, botItemAnswersText(shape, next), paths)
+    if (fromBoxPaths || lines.every((at) => next[at])) {
+      post(next, botItemAnswersText(shape, next), fromBoxPaths ?? [])
       return
     }
     hold(next)
-  })
+  }
+  const answer = useLatestHandler((index: number, words: string) => settle(index, words, null))
   const fromBox = useLatestHandler(
     (text: string, paths: readonly string[], replyingTo: string | null) => {
       if (!waiting) {
         send(text, paths, undefined, oneLine !== null && replyingTo === null)
       } else if (replyingTo === `${askId}:${current}`) {
-        answer(current, text, paths)
+        settle(current, text, paths)
       } else {
         // Held answers name their lines; the comment rides along answering none.
         const answered = botItemAnswersText(shape, kept)
@@ -146,8 +154,18 @@ export function useBotItemQuestionSteps(
     }
   )
   const go = useLatestHandler((index: number) => setChosen({ askId, index }))
+  const heldCount = kept.filter(Boolean).length
+  const sendHeld = useLatestHandler(() => {
+    const answered = botItemAnswersText(shape, kept)
+    if (answered) {
+      setChosen(null)
+      post(kept, answered, [])
+    }
+  })
   // Read fresh each render, as the waiting ask is.
-  const steps = waiting ? { askId, shape, held, current, lines, go, answer } : null
+  const steps = waiting
+    ? { askId, shape, held, current, lines, go, answer, heldCount, sendHeld }
+    : null
   const quick = useLatestHandler((text: string) => {
     if (asked) {
       const { shape: own } = asked
