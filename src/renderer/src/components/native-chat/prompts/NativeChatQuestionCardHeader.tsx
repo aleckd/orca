@@ -64,18 +64,22 @@ export function NativeChatQuestionCardHeader({
     <>
       <div
         data-native-chat-dock-pinned
-        className="flex min-h-9 shrink-0 items-center gap-1.5 bg-primary/9 py-1 pr-1.5 pl-3.5 text-xs font-semibold text-foreground"
+        // Its icon buttons take the options' focus outline, not the shared ring.
+        className="flex min-h-9 shrink-0 items-center gap-1.5 bg-primary/9 py-1 pr-1.5 pl-3.5 text-xs font-semibold text-foreground [&_button:focus-visible]:ring-0 [&_button:focus-visible]:outline-2 [&_button:focus-visible]:outline-offset-2 [&_button:focus-visible]:outline-foreground/45 [&_button:focus-visible]:outline-solid"
       >
         <MessageCircleQuestionMark aria-hidden className="size-3.5 shrink-0 text-primary" />
         {total > 1 ? (
           <>
-            <span className="min-w-0 truncate">{current.header}</span>
-            <span className="shrink-0 font-medium whitespace-nowrap text-muted-foreground">
-              {'· '}
-              {t('components.native-chat.question.stepOf', '{{value0}} of {{value1}}', {
-                value0: index + 1,
-                value1: total
-              })}
+            {/* One run: only the title shrinks, and the count stays right after it. */}
+            <span className="flex min-w-0 items-baseline gap-1">
+              <span className="min-w-0 truncate">{current.header}</span>
+              <span className="shrink-0 font-medium whitespace-nowrap text-muted-foreground">
+                {'· '}
+                {t('components.native-chat.question.stepOf', '{{value0}} of {{value1}}', {
+                  value0: index + 1,
+                  value1: total
+                })}
+              </span>
             </span>
             {current.answered ? (
               <Check
@@ -142,7 +146,7 @@ export function NativeChatQuestionCardHeader({
                 >
                   <span
                     className={cn(
-                      'block h-1 rounded-full transition-colors group-focus-visible/step:outline-[1.5px] group-focus-visible/step:outline-offset-2 group-focus-visible/step:outline-foreground/45 group-focus-visible/step:outline-solid',
+                      'block h-1 rounded-full transition-colors group-focus-visible/step:outline-2 group-focus-visible/step:outline-offset-2 group-focus-visible/step:outline-foreground/45 group-focus-visible/step:outline-solid',
                       i === index
                         ? 'bg-primary'
                         : step.answered

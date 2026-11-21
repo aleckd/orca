@@ -11,14 +11,17 @@ export function NativeChatDock({
   shown?: boolean
   children: React.ReactNode
 }): React.JSX.Element | null {
+  // A separate mount, so the fit's observers start with the dock's box and stop (clearing the root's
+  // fit attribute) when it goes.
+  return shown ? <NativeChatDockBox>{children}</NativeChatDockBox> : null
+}
+
+function NativeChatDockBox({ children }: { children: React.ReactNode }): React.JSX.Element {
   const t = useTranslate()
   const dockRef = useRef<HTMLDivElement>(null)
   useNativeChatDockFit(dockRef)
   // The last fallback scrolls the dock itself; only then is it a focusable region for arrow and Page keys.
   const scrolls = useNativeChatDockFitToken(dockRef, 'dock')
-  if (!shown) {
-    return null
-  }
   return (
     <div
       ref={dockRef}

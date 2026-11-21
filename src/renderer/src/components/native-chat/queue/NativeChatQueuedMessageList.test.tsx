@@ -258,6 +258,18 @@ it('moves focus into the queue when a focused +N more goes away with the questio
   expect(document.activeElement).toBe(screen.getByRole('button', { name: 'Queued message 1' }))
 })
 
+it('leaves focus alone when +N more goes away after the window took focus from it', async () => {
+  const queue = controller([1, 2, 3, 4, 5, 6].map((i) => card(i)))
+  renderQueue(queue, { questionOpen: true })
+  const more = screen.getByRole('button', { name: '+3 more' })
+  act(() => more.focus())
+  // A window blur: no related target, and the button stays.
+  await act(async () => more.blur())
+  await cleanupRender(queue)
+  expect(screen.queryByRole('button', { name: /more$/ })).toBeNull()
+  expect(document.activeElement).toBe(document.body)
+})
+
 it('names a later send failure in a folded header when an unconfirmed card comes first', () => {
   renderQueue(
     controller([

@@ -343,12 +343,14 @@ export function NativeChatQuestionCard({
               // The fit keeps two lines of the question (or all of a shorter one) in view.
               data-native-chat-dock-floor-lines={2}
               className={cn(
-                // The card's heading, one step above its body text and scaling with it.
-                'min-h-[1lh] shrink overflow-y-auto px-3.5 text-[length:calc(var(--text-sm)*15/13)] leading-snug font-semibold text-foreground scrollbar-sleek',
-                'max-h-[calc(4lh+var(--spacing)*3)]',
-                total > 1 ? 'pt-0.5' : 'pt-3',
+                // The card's heading, one step above its body text and scaling with it; it fades while more lies below.
+                'native-chat-question-card-question min-h-[1lh] shrink overflow-y-auto px-3.5 text-[length:calc(var(--text-sm)*15/13)] leading-snug font-semibold text-foreground scrollbar-sleek',
+                // Capped at whole lines plus its own top padding, so a long question never shows a cut line.
+                total > 1
+                  ? 'max-h-[calc(4lh+var(--spacing)*0.5)] pt-0.5 [[data-native-chat-dock-fit~=card]_&]:max-h-[calc(2lh+var(--spacing)*0.5)]'
+                  : 'max-h-[calc(4lh+var(--spacing)*3)] pt-3 [[data-native-chat-dock-fit~=card]_&]:max-h-[calc(2lh+var(--spacing)*3)]',
                 // In a scrolling body the question keeps two lines (scrolling for the rest), so option 1 starts in view.
-                '[[data-native-chat-dock-fit~=card]_&]:max-h-[calc(2lh+var(--spacing)*3)] [[data-native-chat-dock-fit~=card]_&]:shrink-0'
+                '[[data-native-chat-dock-fit~=card]_&]:shrink-0'
               )}
             >
               <div data-native-chat-dock-content>
@@ -421,7 +423,7 @@ export function NativeChatQuestionCard({
                 type="button"
                 disabled={isSubmitting}
                 onClick={() => goTo(index - 1)}
-                className="inline-flex h-8 shrink-0 items-center rounded-lg px-3 text-[length:calc(var(--chat-ui-size,var(--text-sm))*13/14)] font-semibold text-muted-foreground transition-colors hover:bg-foreground/5 hover:text-foreground focus-visible:outline-[1.5px] focus-visible:outline-offset-2 focus-visible:outline-foreground/45 disabled:opacity-50"
+                className="inline-flex h-8 shrink-0 items-center rounded-lg px-3 text-[length:calc(var(--chat-ui-size,var(--text-sm))*13/14)] font-semibold text-muted-foreground transition-colors hover:bg-foreground/5 hover:text-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-foreground/45 disabled:opacity-50"
               >
                 {t('components.native-chat.question.back', 'Back')}
               </button>

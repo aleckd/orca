@@ -6,7 +6,6 @@ import {
   ChevronDown,
   ChevronUp,
   CornerDownRight,
-  ListEnd,
   MoreHorizontal,
   Pencil,
   Send,
@@ -35,6 +34,7 @@ import {
   type QueuedMessageCard
 } from '../../../../../shared/agent-session/view/structured-agent-session-queued-cards'
 import { NativeChatQueuedMessageSender } from '@/components/native-chat/queue/NativeChatQueuedMessageSender'
+import { NativeChatQueuedMessageRowIcon } from '@/components/native-chat/queue/NativeChatQueuedMessageRowIcon'
 import { NativeChatPendingIcon } from '@/components/native-chat/queue/NativeChatPendingIcon'
 import type { QueuedMessagesPendingAction } from '@/components/native-chat/queue/use-structured-agent-session-queued-messages'
 import type { AgentSessionFailureFact } from '../../../../../shared/agent-session/failures/agent-session-failure'
@@ -221,33 +221,12 @@ export function NativeChatQueuedMessageCard({
           )}
         />
       ) : null}
-      <span
-        className={cn(
-          'relative flex size-3.5 shrink-0 items-center justify-center',
-          expanded && 'mt-1.5'
-        )}
-      >
-        {attention ? (
-          <AlertCircle
-            className={cn(
-              'size-3.5 text-destructive',
-              drag?.grip &&
-                'group-hover/queued:opacity-0 group-focus-within/queued:opacity-0 [@media(hover:none)]:opacity-0'
-            )}
-            aria-hidden
-          />
-        ) : (
-          <ListEnd
-            className={cn(
-              'size-3.5 text-muted-foreground',
-              drag?.grip &&
-                'group-hover/queued:opacity-0 group-focus-within/queued:opacity-0 [@media(hover:none)]:opacity-0'
-            )}
-            aria-hidden
-          />
-        )}
-        {drag?.grip}
-      </span>
+      <NativeChatQueuedMessageRowIcon
+        attention={attention}
+        failureMovesToCaption={failed && !withdrawn}
+        expanded={expanded}
+        grip={drag?.grip}
+      />
       <button
         type="button"
         id={textId}
@@ -256,7 +235,8 @@ export function NativeChatQueuedMessageCard({
         title={expanded ? undefined : line}
         onClick={onToggleExpanded}
         className={cn(
-          'min-w-0 flex-1 rounded-sm text-left text-sm text-foreground focus-visible:outline-[1.5px] focus-visible:outline-offset-1 focus-visible:outline-foreground/45',
+          // Inline padding with a matching negative margin, so the focus outline clears the text.
+          '-mx-1 min-w-0 flex-1 rounded-sm px-1 text-left text-sm text-foreground focus-visible:outline-[1.5px] focus-visible:outline-offset-1 focus-visible:outline-foreground/45',
           expanded
             ? 'scrollbar-sleek max-h-60 overflow-y-auto py-0.5 whitespace-pre-wrap break-words'
             : 'truncate'
@@ -278,10 +258,18 @@ export function NativeChatQueuedMessageCard({
                 expanded && 'mt-1'
               )}
             >
-              {withdrawn
-                ? caption
-                : t('components.native-chat.queuedMessages.couldNotSend', "Couldn't send")}
-              {withdrawn ? null : <span className="sr-only">{`: ${caption}`}</span>}
+              {withdrawn ? (
+                caption
+              ) : (
+                <>
+                  {/* A narrow row keeps its message readable: the failure is the red icon, its words in the tooltip. */}
+                  <AlertCircle aria-hidden className="hidden size-3.5 @max-[400px]:block" />
+                  <span className="@max-[400px]:sr-only">
+                    {t('components.native-chat.queuedMessages.couldNotSend', "Couldn't send")}
+                  </span>
+                  <span className="sr-only">{`: ${caption}`}</span>
+                </>
+              )}
             </span>
           </TooltipTrigger>
           <TooltipContent side="top" sideOffset={4}>

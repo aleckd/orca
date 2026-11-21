@@ -135,7 +135,7 @@ export function NativeChatQueuedMessageList({
   })
   const moreRef = useRef<HTMLButtonElement>(null)
   // "+N more" goes away when the pane grows or the question closes; focus on it moves into the queue
-  // rather than falling to the page. A blur with nowhere to go (its removal) keeps the claim.
+  // rather than falling to the page. Only a blur from its removal keeps the claim.
   const moreHadFocus = useRef(false)
   useLayoutEffect(() => {
     const active = document.activeElement
@@ -285,8 +285,17 @@ export function NativeChatQueuedMessageList({
                   setListFocused(true)
                 }}
                 onBlur={(event) => {
+                  const button = event.currentTarget
                   if (event.relatedTarget) {
                     moreHadFocus.current = false
+                  } else {
+                    // Focus left the window or went nowhere while the button stays: the claim ends
+                    // (a return refocuses and claims again). Only the button's removal keeps it.
+                    queueMicrotask(() => {
+                      if (button.isConnected) {
+                        moreHadFocus.current = false
+                      }
+                    })
                   }
                   leaveList(event)
                 }}
