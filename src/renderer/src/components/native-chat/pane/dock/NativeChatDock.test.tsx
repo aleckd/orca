@@ -7,14 +7,15 @@ import { NativeChatDock } from './NativeChatDock'
 import { NATIVE_CHAT_DOCK_FIT_ATTRIBUTE } from './native-chat-dock-fit'
 
 // Records what each fit watcher observes and whether it was torn down.
-const watchers: { observed: Element[]; disconnected: boolean }[] = []
+type Watcher = { observed: Element[]; disconnected: boolean }
+const watchers: Watcher[] = []
 
 beforeEach(() => {
   watchers.length = 0
   vi.stubGlobal(
     'ResizeObserver',
     class {
-      private readonly watcher = { observed: [] as Element[], disconnected: false }
+      private readonly watcher: Watcher = { observed: [], disconnected: false }
       constructor() {
         watchers.push(this.watcher)
       }
