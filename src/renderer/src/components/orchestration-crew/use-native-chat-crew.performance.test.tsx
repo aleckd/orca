@@ -137,13 +137,14 @@ function Session(_props: { update: number }) {
   })
   const subagents = useStructuredNativeChatSubagents({
     sessionId: SESSIONS[9],
+    target: { kind: 'local' },
     paneKey: 'tab_chat:pane',
     isVisible: true,
     controller: { backgroundTasks: NO_WORK, stopBackgroundTask: async () => null }
   })
   return (
     <NativeChatCrewContext.Provider value={source}>
-      {subagents.strip}
+      {subagents.dock}
     </NativeChatCrewContext.Provider>
   )
 }

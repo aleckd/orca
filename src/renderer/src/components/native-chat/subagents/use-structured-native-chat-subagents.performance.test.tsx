@@ -27,11 +27,12 @@ const RUNNING: StructuredSessionBackgroundTasksView = {
 function Chat(_props: { update: number }) {
   const subagents = useStructuredNativeChatSubagents({
     sessionId: 'session-1',
+    target: { kind: 'local' },
     paneKey: 'tab_chat:pane',
     isVisible: true,
     controller: { backgroundTasks: RUNNING, stopBackgroundTask: async () => null }
   })
-  return subagents.strip
+  return subagents.dock
 }
 
 it('keeps the agents strip still while its session updates and its work does not change', () => {

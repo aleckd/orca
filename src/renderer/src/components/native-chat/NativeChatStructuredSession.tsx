@@ -73,11 +73,8 @@ import { useStructuredAgentSessionStartFailureFacts } from '@/components/native-
 import { pendingPromptsAllUnanswerableHere } from '../../../../shared/agent-session/requests/prompts/agent-session-approval-subject'
 import { NativeChatHostSetupContext } from '@/components/native-chat/host-access/native-chat-host-setup'
 import type { NativeChatComposerHandle } from './composer/native-chat-composer-types'
-import {
-  NativeChatPartyWorkerApprovalStack,
-  NativeChatWorkerApprovalTimeline,
-  nativeChatWorkerApprovalParty
-} from './worker-approvals/NativeChatWorkerApprovals'
+import { nativeChatWorkerApprovalParty } from './worker-approvals/NativeChatWorkerApprovals'
+import { NativeChatWorkerTimeline } from './tools/tasks/dock/NativeChatWorkerResultTimeline'
 
 export function NativeChatStructuredSession(props: Omit<NativeChatStructuredViewProps, 'mode'>) {
   const { ownerWorktreeId, turnBot, bot: chatBot } = useBotChatOwner(props)
@@ -259,7 +256,11 @@ export function NativeChatStructuredSession(props: Omit<NativeChatStructuredView
     <NativeChatAntigravityAuthProvider target={install.antigravityAuth}>
       <NativeChatSlackMirrorContext.Provider value={slackMirror}>
         <NativeChatCrewContext.Provider value={crew}>
-          <NativeChatSurface surface={surface} working={controller.isWorking}>
+          <NativeChatSurface
+            surface={surface}
+            working={controller.isWorking}
+            className="[container-type:size]"
+          >
             {nativeChatPaneHeader(props, ownerWorktreeId, surface.appearance.colorScheme, handOff)}
             <div className="relative flex min-h-0 flex-1 flex-col">
               <NativeChatContextClearFade
@@ -291,9 +292,12 @@ export function NativeChatStructuredSession(props: Omit<NativeChatStructuredView
                       view={continuation.view}
                     >
                       <NativeChatHostSetupContext.Provider value={setup}>
-                        <NativeChatWorkerApprovalTimeline
-                          party={workerApprovalParty}
+                        <NativeChatWorkerTimeline
+                          approvalParty={workerApprovalParty}
+                          workerDock={controller.backgroundTasks.workerDock}
                           target={props.target}
+                          sessionId={props.sessionId}
+                          isVisible={props.isVisible}
                         >
                           {(timedRows) => (
                             <NativeChatSubagentTranscripts
@@ -324,7 +328,7 @@ export function NativeChatStructuredSession(props: Omit<NativeChatStructuredView
                               timedRows={timedRows}
                             />
                           )}
-                        </NativeChatWorkerApprovalTimeline>
+                        </NativeChatWorkerTimeline>
                       </NativeChatHostSetupContext.Provider>
                     </NativeChatUsageLimitActionsProvider>
                   </NativeChatRowActionsProvider>
@@ -343,13 +347,7 @@ export function NativeChatStructuredSession(props: Omit<NativeChatStructuredView
                   focusComposer={focusComposer}
                   editAttachTo={{ terminalTabId: props.tabId, agent: props.agent, transport }}
                 />
-                {subagents.strip}
-                {/* Workers' open prompts stay pinned here, above this chat's own prompt. */}
-                <NativeChatPartyWorkerApprovalStack
-                  party={workerApprovalParty}
-                  target={props.target}
-                  isVisible={props.isVisible}
-                />
+                {composerShown ? null : subagents.dock}
                 {prompt || subagentOpen ? null : (
                   <NativeChatStructuredComposerTabStrips
                     tabId={props.tabId}
@@ -390,6 +388,7 @@ export function NativeChatStructuredSession(props: Omit<NativeChatStructuredView
                 {composerShown ? (
                   <NativeChatComposer
                     ref={composerRef}
+                    dock={subagents.dock}
                     terminalTabId={props.tabId}
                     paneKey={paneKey}
                     draftScopeKey={structuredAgentSessionDraftScopeKey(props.sessionId)}

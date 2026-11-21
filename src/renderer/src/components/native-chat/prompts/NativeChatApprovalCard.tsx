@@ -40,8 +40,9 @@ export type NativeChatApprovalCardProps = {
   worker?: { name: string; onOpen: () => void }
   /** Live time left before the agent decides on its own, shown only when its screen shows it. */
   countdown?: string
-  /** `stacked`: one of several cards above the composer, not the chat's own slot (no slot height, no focus). */
-  placement?: 'composer' | 'stacked'
+  /** `stacked`: one of several cards above the composer, not the chat's own slot (no slot height, no focus).
+   *  `dock`: stacked inside the worker dock, which draws the frame and scrolls. */
+  placement?: 'composer' | 'stacked' | 'dock'
   /** Read off a terminal screen (folder trust, startup menus): keeps the full card. */
   parsedFromTerminal?: boolean
 }
@@ -81,7 +82,8 @@ export function NativeChatApprovalCard({
         : option.send === URL_APPROVAL_DECLINE_OPTION_ID
           ? t('components.native-chat.urlRequest.decline', 'Decline')
           : option.label
-  const stacked = placement === 'stacked'
+  const stacked = placement !== 'composer'
+  const joined = placement === 'dock'
   // A tool call's prompt reads as a quiet transcript row; plan reviews, sign-ins and prompts read
   // off a terminal screen keep the full card.
   const quiet = !parsedFromTerminal && url === null && !isPlanApprovalSubject(approval.subject)
@@ -120,14 +122,20 @@ export function NativeChatApprovalCard({
 
   return (
     <SecuritySurface>
-      <div className={stacked ? 'bg-chat-pane' : 'min-h-0 shrink overflow-hidden bg-chat-pane'}>
+      <div
+        className={
+          joined ? '' : stacked ? 'bg-chat-pane' : 'min-h-0 shrink overflow-hidden bg-chat-pane'
+        }
+      >
         <div
           className={cn(
-            'flex w-full px-3 pt-2 pb-1 sm:px-4',
-            // Quiet: the transcript scroller's gutters too, which narrow panes show.
-            quiet
-              ? 'scrollbar-sleek overflow-hidden [scrollbar-gutter:stable_both-edges]'
-              : 'mx-auto max-w-(--chat-content-max-width)',
+            'flex w-full',
+            joined
+              ? null
+              : // Quiet: the transcript scroller's gutters too, which narrow panes show.
+                quiet
+                ? 'px-3 pt-2 pb-1 sm:px-4 scrollbar-sleek overflow-hidden [scrollbar-gutter:stable_both-edges]'
+                : 'mx-auto max-w-(--chat-content-max-width) px-3 pt-2 pb-1 sm:px-4',
             !stacked && 'h-full min-h-0 max-h-full'
           )}
         >
@@ -135,7 +143,7 @@ export function NativeChatApprovalCard({
           <div
             className={cn(
               'flex w-full',
-              quiet && 'mx-auto max-w-(--chat-content-max-width) px-[5px]',
+              quiet && !joined && 'mx-auto max-w-(--chat-content-max-width) px-[5px]',
               !stacked && 'h-full min-h-0 max-h-full'
             )}
           >
@@ -154,10 +162,12 @@ export function NativeChatApprovalCard({
                 }
               }}
               className={cn(
-                'flex min-h-0 w-full flex-1 flex-col overflow-hidden rounded-lg border bg-card focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
-                quiet
-                  ? 'gap-1.5 border-border px-2.5 pt-1.5 pb-2'
-                  : 'gap-2 border-input px-4 py-3 shadow-xs'
+                'flex min-h-0 w-full flex-1 flex-col overflow-hidden focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
+                joined
+                  ? 'gap-2 px-4 py-3 focus-visible:ring-inset'
+                  : quiet
+                    ? 'gap-1.5 rounded-lg border border-border bg-card px-2.5 pt-1.5 pb-2'
+                    : 'gap-2 rounded-lg border border-input bg-card px-4 py-3 shadow-xs'
               )}
             >
               <div className={cn('flex shrink-0 items-start', quiet ? 'min-h-6 gap-1.5' : 'gap-2')}>
@@ -220,6 +230,15 @@ export function NativeChatApprovalCard({
                   >
                     <X className={quiet ? 'size-3.5' : 'size-4'} />
                   </button>
+                ) : onCollapse && joined ? (
+                  <button
+                    type="button"
+                    onClick={onCollapse}
+                    disabled={isSubmitting}
+                    className="min-h-11 shrink-0 rounded-md px-2 text-xs text-muted-foreground hover:bg-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring"
+                  >
+                    {t('components.native-chat.workerDock.notNow', 'Not now')}
+                  </button>
                 ) : onCollapse ? (
                   <NativeChatPromptCollapseToggle
                     expanded
@@ -234,7 +253,9 @@ export function NativeChatApprovalCard({
                   data-native-chat-approval-content="true"
                   tabIndex={0}
                   className={cn(
-                    'min-h-0 max-h-72 shrink overflow-auto text-sm scrollbar-sleek focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring',
+                    'min-h-0 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring',
+                    // Joined: the dock's frame scrolls, so the content never nests a scroller.
+                    joined ? 'shrink-0' : 'max-h-72 shrink overflow-auto scrollbar-sleek',
                     // Quiet: under the title, as a folded row's lines sit under its own.
                     quiet
                       ? 'space-y-1.5 pl-5 text-chat-foreground-faint'
