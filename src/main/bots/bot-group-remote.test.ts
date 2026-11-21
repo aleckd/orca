@@ -8,6 +8,7 @@ import { BotGroupMessageSchema, BotGroupSchema } from '../../shared/bots/bot-gro
 import { botGroupRoomMailAddress } from '../../shared/bots/bot-group-room-mail'
 import { fixture, groupNativeMocks } from './bot-group-native-runtime.test-fixture'
 import { remoteRoomMailArrived } from './bot-group-remote-answers'
+import { BotGroupStore } from './bot-group-store'
 import { OrchestrationError } from '../runtime/orchestration/orchestration-error'
 
 const mocks = groupNativeMocks()
@@ -515,5 +516,88 @@ describe('older or damaged records', () => {
       remoteAsks: 'nope'
     })
     expect(message.remoteAsks).toBeUndefined()
+  })
+})
+
+describe('a rollback to a build that predates these fields', () => {
+  it('keeps the roster, remote answers and image refs an older build writes back without', async () => {
+    const base = remoteFixture()
+    const group = await mixedRoom(base)
+    const posted = await post(base, group, '@Atlas status?')
+    arrive(base, group.id, posted.remoteAsks![0].requestId, { answer: 'Green on main.' })
+    remoteRoomMailArrived(base.groups, group.id)
+    const image = { path: '/attachments/a.png', name: 'a.png', bytes: 3 }
+    base.db
+      .prepare(
+        `UPDATE bot_group_messages SET record = json_set(record, '$.images', json(?)) WHERE id = ?`
+      )
+      .run(JSON.stringify([image]), posted.id)
+    const answered = base.groups.store.message(posted.id)!
+
+    // What an older build's edit, new thread or turn update writes: its own schema's keys only.
+    const strip = (record: string, key: string) => {
+      const { [key]: _dropped, ...kept } = JSON.parse(record)
+      return JSON.stringify(kept)
+    }
+    const groupRecord = base.db.prepare('SELECT record FROM bot_groups WHERE id = ?').get(group.id)!
+    base.db
+      .prepare(
+        'INSERT INTO bot_groups(id, record) VALUES (?, ?) ON CONFLICT(id) DO UPDATE SET record = excluded.record'
+      )
+      .run(group.id, strip(String(groupRecord.record), 'remoteMembers'))
+    const messageRecord = base.db
+      .prepare('SELECT record FROM bot_group_messages WHERE id = ?')
+      .get(posted.id)!
+    base.db
+      .prepare('UPDATE bot_group_messages SET record = ? WHERE id = ? AND group_id = ?')
+      .run(strip(strip(String(messageRecord.record), 'remoteAsks'), 'images'), posted.id, group.id)
+
+    expect(base.groups.store.get(group.id).remoteMembers).toEqual(group.remoteMembers)
+    expect(base.groups.store.message(posted.id)).toEqual(answered)
+    expect(answered.images).toEqual([image])
+    expect(answered.remoteAsks![0].reply).toEqual({ kind: 'answer', text: 'Green on main.' })
+  })
+
+  it('still clears a roster removed on a build that knows it', async () => {
+    const base = remoteFixture()
+    const group = await mixedRoom(base)
+    await base.groups.update({ groupId: group.id, revision: group.revision, remoteBots: [] })
+    expect(base.groups.store.get(group.id).remoteMembers).toBeUndefined()
+    expect(base.groups.store.list()[0].remoteMembers).toBeUndefined()
+  })
+})
+
+describe('a remote answer arriving', () => {
+  it("joins the post it answers without reading the group's rooms", async () => {
+    const base = remoteFixture()
+    const group = await mixedRoom(base)
+    const posted = await post(base, group, '@Atlas status?')
+    arrive(base, group.id, posted.remoteAsks![0].requestId, { answer: 'Green on main.' })
+    const rooms = vi.spyOn(base.groups.store, 'roomMessages')
+
+    remoteRoomMailArrived(base.groups, group.id)
+
+    expect(rooms).not.toHaveBeenCalled()
+    expect(base.groups.store.message(posted.id)?.remoteAsks?.[0].reply).toEqual({
+      kind: 'answer',
+      text: 'Green on main.'
+    })
+    expect(base.orchestration.getUnreadMessages(botGroupRoomMailAddress(group.id))).toEqual([])
+  })
+
+  it('finds a question asked before its post was indexed', async () => {
+    const base = remoteFixture()
+    const group = await mixedRoom(base)
+    const posted = await post(base, group, '@Atlas status?')
+    base.db.exec('DROP TABLE bot_group_remote_asks')
+    new BotGroupStore(base.db)
+    arrive(base, group.id, posted.remoteAsks![0].requestId, { answer: 'Green on main.' })
+
+    remoteRoomMailArrived(base.groups, group.id)
+
+    expect(base.groups.store.message(posted.id)?.remoteAsks?.[0].reply).toEqual({
+      kind: 'answer',
+      text: 'Green on main.'
+    })
   })
 })

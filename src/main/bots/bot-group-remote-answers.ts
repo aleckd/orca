@@ -159,15 +159,30 @@ function isBotAnswer(row: MessageRow, requestId: string): boolean {
   }
 }
 
-/** Mail for a room's remote members arrived: copy it onto the room's posts, and open rooms re-read. */
+/** Mail for a room's remote members arrived: copy it onto the posts it answers, and open rooms
+ *  re-read. Only the room's unread mail is read, each found by the post its question went with,
+ *  so no room's history is read here. */
 export function remoteRoomMailArrived(groups: BotGroupRuntime, groupId: string): void {
   try {
-    const group = groups.store.list().find((entry) => entry.id === groupId)
-    if (!group) {
-      return
+    const db = groups.runtime.getOrchestrationDb()
+    const rows = db.db
+      .prepare('SELECT id, thread_id FROM messages WHERE to_handle = ? AND read = 0')
+      .all(botGroupRoomMailAddress(groupId))
+    const posts = new Map<string, BotGroupMessage>()
+    for (const row of rows) {
+      const post = row.thread_id ? groups.store.remoteAskMessage(String(row.thread_id)) : null
+      if (post?.groupId === groupId) {
+        posts.set(post.id, post)
+      }
     }
-    for (const threadId of [undefined, ...(group.threads ?? []).map((thread) => thread.id)]) {
-      collectRemoteAnswers(groups, groups.store.roomMessages(groupId, threadId, 40))
+    collectRemoteAnswers(groups, [...posts.values()])
+    // Room mail shows only on its post, which a room read joins whether or not it was read; mail
+    // left over (a notice after the answer) would otherwise be looked up on every arrival.
+    if (rows.length > 0) {
+      db.markAsRead(
+        rows.map((row) => String(row.id)),
+        { kind: 'orca' }
+      )
     }
   } catch (error) {
     console.warn('[bot-groups] could not read a remote member answer', error)
