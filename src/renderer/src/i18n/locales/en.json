@@ -23309,6 +23309,16 @@
           "correctionWord": "Correction word",
           "correctionWordDescription": "Say it to take back what you just said: “at four, {{word}}, at five”.",
           "correctionWordOff": "None"
+        },
+        "spokenReplies": {
+          "title": "Spoken replies",
+          "sample": "Your agent finished the build. Two tests need your review.",
+          "previewFailed": "Couldn't play the voice. Try again.",
+          "description": "The voice Orca uses to read replies aloud.",
+          "preview": "Preview",
+          "aloud": "read aloud",
+          "tts": "tts",
+          "voice": "Voice"
         }
       },
       "repositoryHooks": {

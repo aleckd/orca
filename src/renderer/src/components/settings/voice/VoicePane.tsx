@@ -16,6 +16,7 @@ import {
 import { VoiceWordsSettings } from './VoiceWordsSettings'
 import { VoiceCleanupSettings } from './VoiceCleanupSettings'
 import type { SourceControlAiSettingsPatch } from '../../../../../shared/source-control/ai/settings/source-control-ai-settings-types'
+import { VoiceSpokenRepliesSetting } from './VoiceSpokenRepliesSetting'
 import { VoiceInputSettings } from './VoiceInputSettings'
 import { isSpeechModelDownloading } from './voice-speech-model-rows'
 import { VoiceDictationSettings } from './VoiceDictationSettings'
@@ -348,6 +349,8 @@ export function VoicePane({
         onUpdateVoiceSettings={updateVoiceSettings}
         writeSourceControlAiSettings={writeSourceControlAiSettings}
       />
+
+      <VoiceSpokenRepliesSetting />
 
       <SettingsGroup title={t('components.settings.voice.advanced.title', 'Advanced')}>
         <VoiceSpeechGpuSetting

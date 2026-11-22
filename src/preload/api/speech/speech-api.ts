@@ -1,5 +1,6 @@
 import type { SecretAtRestProtection } from '../../../shared/secure-storage/secret-at-rest-protection'
 import type { DictationCleanupResult } from '../../../shared/speech/dictation/dictation-cleanup'
+import type { SpeechVoicePreviewResult } from '../../../shared/rpc-contract/speech/speech-synthesis-params'
 import type {
   DictationContext,
   OpenAiCompatibleSpeechProvider,
@@ -46,6 +47,8 @@ export type SpeechApi = {
     requestId: string
   ) => Promise<DictationCleanupResult>
   cancelDictationCleanup?: (requestId: string) => Promise<void>
+  /** Absent in the paired web client: spoken replies are set up on the host's own desktop. */
+  previewSpeechVoice?: (text: string) => Promise<SpeechVoicePreviewResult>
   onPartialTranscript: (callback: (data: SpeechTranscriptEvent) => void) => () => void
   onFinalTranscript: (callback: (data: SpeechTranscriptEvent) => void) => () => void
   onSpeechPending: (callback: (data: SpeechPendingEvent) => void) => () => void

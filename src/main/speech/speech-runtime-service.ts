@@ -1,6 +1,8 @@
 import type { ModelManager } from './model-manager'
 import type { SttService } from './stt-service'
 import type { VoiceSettings } from '../../shared/speech/speech-types'
+import { createMacosSystemTtsProvider } from './tts/macos-system-tts-provider'
+import { TtsService } from './tts/tts-service'
 
 /** Hosts inject Chromium/Node download factories; missing services reject per call rather than appearing to transcribe. */
 
@@ -19,6 +21,7 @@ export type SpeechServiceFactories = {
 let factories: SpeechServiceFactories | null = null
 let modelManager: ModelManager | null = null
 let sttService: SttService | null = null
+let ttsService: TtsService | null = null
 
 export function setSpeechServiceFactories(next: SpeechServiceFactories | null): void {
   factories = next
@@ -55,4 +58,10 @@ export function getSpeechSttService(store: SpeechSettingsStore): SttService {
 /** The service only if something already created it, so a host with voice off never builds one. */
 export function findSpeechSttService(): SttService | null {
   return sttService
+}
+
+/** Spoken replies need no downloads or Electron APIs yet, so every host builds the same service. */
+export function getSpeechTtsService(): TtsService {
+  ttsService ??= new TtsService([createMacosSystemTtsProvider()])
+  return ttsService
 }

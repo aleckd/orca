@@ -6,7 +6,8 @@ import { createLocalizedCatalog } from '@/i18n/localized-catalog'
 export const VOICE_SETTING_ANCHORS = {
   mode: 'voice-dictation-mode',
   language: 'voice-dictation-language',
-  speechModel: 'voice-speech-model'
+  speechModel: 'voice-speech-model',
+  spokenReplies: 'voice-spoken-replies'
 } as const
 
 // The OpenAI key row shows only on the Cloud tab once a key is saved, so the result lands on the model card.
@@ -37,6 +38,19 @@ export const getOpenaiTranscriptionSearchEntry = createLocalizedCatalog(
 )
 
 export const getVoicePaneSearchEntries = createLocalizedCatalog(() => [
+  {
+    title: translate('components.settings.voice.spokenReplies.title', 'Spoken replies'),
+    description: translate(
+      'components.settings.voice.spokenReplies.description',
+      'The voice Orca uses to read replies aloud.'
+    ),
+    targetSectionId: VOICE_SETTING_ANCHORS.spokenReplies,
+    keywords: [
+      ...translateSearchKeyword('components.settings.voice.spokenReplies.aloud', 'read aloud'),
+      ...translateSearchKeyword('components.settings.voice.spokenReplies.tts', 'tts'),
+      ...translateSearchKeyword('auto.components.settings.voice.pane.search.7640ed9848', 'voice')
+    ]
+  },
   {
     title: translate('auto.components.settings.voice.pane.search.dictationTitle', 'Dictation'),
     description: translate(
